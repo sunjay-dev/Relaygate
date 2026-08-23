@@ -1,25 +1,22 @@
 ARG NODE_VERSION=24.11.0
 ARG PNPM_VERSION=10.33.0
 
-# ----------------------------- BASE ----------------------------------
-
-FROM node:${NODE_VERSION}-alpine as base
+FROM node:${NODE_VERSION}-alpine AS base
 
 WORKDIR /usr/src/app
 
 RUN --mount=type=cache,target=/root/.npm \
     npm install -g pnpm@${PNPM_VERSION}
 
-FROM base as deps
+FROM base AS deps
 
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prod --frozen-lockfile
+    pnpm install --prod
 
-# ------------------------- BUILD ----------------------------------
+FROM deps AS build
 
-FROM deps as build
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
@@ -29,11 +26,9 @@ COPY . .
 
 RUN pnpm run build
 
-# ------------------------- FINAL ----------------------------------
+FROM node:${NODE_VERSION}-alpine AS final
 
-FROM node:${NODE_VERSION}-alpine as final
-
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 USER node
 
