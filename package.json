@@ -1,0 +1,28 @@
+{
+  "name": "hono-proxy-server",
+  "version": "1.0.0",
+  "description": "Production-ready generic outbound HTTP proxy server",
+  "type": "module",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "concurrently \"tsc -w\" \"node --watch --env-file=.env dist/app.js\"",
+    "build": "tsc",
+    "start": "node --env-file=.env dist/app.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@hono/node-server": "^1.14.4",
+    "hono": "^4.8.6",
+    "pino": "^10.3.1",
+    "valibot": "^1.4.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}
