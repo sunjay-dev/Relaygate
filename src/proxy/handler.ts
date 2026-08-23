@@ -37,6 +37,9 @@ const SAFE_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length",
   "content-disposition",
+  "x-ratelimit-requests-limit",
+  "x-ratelimit-requests-remaining",
+  "x-ratelimit-requests-reset",
 ]);
 
 export async function proxyHandler(c: Context): Promise<Response> {
