@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { config } from "./config.js";
+import { config } from "./config/env.config.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { proxyHandler, handleProxyError } from "./proxy/handler.js";
 import { logger } from "./utils/logging.js";

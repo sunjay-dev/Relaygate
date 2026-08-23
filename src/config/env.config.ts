@@ -11,7 +11,7 @@ const envSchema = v.pipe(
   v.check((input) => input.PROXY_TOKEN !== "change-me", "PROXY_TOKEN must be changed from default"),
 );
 
-export type Env = v.InferOutput<typeof envSchema>;
+type Env = v.InferOutput<typeof envSchema>;
 
 function parseBodyLimit(raw: string): number {
   const match = /^(\d+)(mb|kb|gb)?$/i.exec(raw.trim());

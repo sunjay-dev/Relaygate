@@ -1,17 +1,9 @@
 import * as v from "valibot";
 import { badRequest } from "../utils/errors.js";
 import { isSSRFSafe, assertSSRFSafe, validateResolvedAddresses } from "./ssrf.js";
-import { config } from "../config.js";
+import { config } from "../config/env.config.js";
 
-const HTTP_METHODS = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "HEAD",
-  "OPTIONS",
-] as const;
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
 
 export const proxyRequestSchema = v.object({
   url: v.pipe(v.string(), v.url("Invalid URL")),

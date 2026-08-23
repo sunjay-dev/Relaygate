@@ -1,13 +1,8 @@
 import type { Context } from "hono";
-import { config } from "../config.js";
+import { config } from "../config/env.config.js";
 import { isProxyError, badRequest, gatewayTimeout, badGateway } from "../utils/errors.js";
 import { logger, logProxyRequest } from "../utils/logging.js";
-import {
-  parseProxyRequest,
-  validateTargetUrl,
-  validateTarget,
-  shouldIncludeBody,
-} from "./validation.js";
+import { parseProxyRequest, validateTargetUrl, validateTarget, shouldIncludeBody } from "./validation.js";
 import type { ProxyRequest } from "./validation.js";
 
 const REQUEST_SPECIFIC_HEADERS = new Set([
@@ -22,9 +17,7 @@ const REQUEST_SPECIFIC_HEADERS = new Set([
   "trailer",
 ]);
 
-function filterUpstreamHeaders(
-  headers: Record<string, string> | undefined,
-): Record<string, string> {
+function filterUpstreamHeaders(headers: Record<string, string> | undefined): Record<string, string> {
   if (!headers) return {};
   const filtered: Record<string, string> = {};
   for (const [key, value] of Object.entries(headers)) {
@@ -122,10 +115,7 @@ export async function proxyHandler(c: Context): Promise<Response> {
       success: false,
     });
 
-    if (
-      err instanceof Error &&
-      (err.name === "AbortError" || err.message.includes("abort"))
-    ) {
+    if (err instanceof Error && (err.name === "AbortError" || err.message.includes("abort"))) {
       throw gatewayTimeout();
     }
 
