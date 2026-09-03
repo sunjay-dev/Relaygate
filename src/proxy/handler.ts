@@ -34,7 +34,6 @@ const SAFE_RESPONSE_HEADERS = new Set([
   "cache-control",
   "etag",
   "last-modified",
-  "content-encoding",
   "content-length",
   "content-disposition",
   "x-ratelimit-requests-limit",
