@@ -22,7 +22,7 @@
   "repository": "https://github.com/sunjay-dev/relaygate",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
-    "@hono/node-server": "^1.14.4",
+    "@hono/node-server": "^2.1.1",
     "hono": "^4.8.6",
     "pino": "^10.3.1",
     "valibot": "^1.4.2"
