@@ -23,7 +23,7 @@
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@hono/node-server": "^1.14.4",
-    "hono": "^4.8.6",
+    "hono": "^4.13.7",
     "pino": "^10.3.1",
     "valibot": "^1.4.2"
   },
