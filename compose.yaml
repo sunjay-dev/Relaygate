@@ -1,19 +1,11 @@
 services:
   server:
-    container_name: proxy-server
-    image: sunjay195/proxy-server:latest
-    # build:
-    #   context: .
+    container_name: relaygate
+    image: sunjay195/relaygate:latest
+    build:
+      context: .
     ports:
       - 4200:4000
     env_file:
       - .env
     restart: unless-stopped
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 30s

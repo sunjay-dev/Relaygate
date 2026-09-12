@@ -7,6 +7,7 @@ const envSchema = v.pipe(
     PROXY_TIMEOUT_MS: v.optional(v.pipe(v.string(), v.regex(/^\d+$/)), "30000"),
     PROXY_BODY_LIMIT: v.optional(v.string(), "2mb"),
     PROXY_ALLOWED_HOSTS: v.optional(v.string(), ""),
+    BASE_PATH: v.optional(v.string(), ""),
   }),
   v.check((input) => input.PROXY_TOKEN !== "change-me", "PROXY_TOKEN must be changed from default"),
 );
@@ -30,6 +31,25 @@ function parseBodyLimit(raw: string): number {
   }
 }
 
+function parseBasePath(raw: string): string {
+  const basePath = raw.trim();
+  if (!basePath || basePath === "/") return "";
+
+  if (
+    !basePath.startsWith("/") ||
+    basePath.includes("?") ||
+    basePath.includes("#") ||
+    basePath.includes("//")
+  ) {
+    console.error(
+      "Invalid environment variables:\n  - BASE_PATH: must be an absolute path without query strings, fragments, or empty segments",
+    );
+    process.exit(1);
+  }
+
+  return basePath.replace(/\/+$/, "");
+}
+
 function validateEnv(): Env {
   const result = v.safeParse(envSchema, {
     PORT: process.env.PORT,
@@ -37,6 +57,7 @@ function validateEnv(): Env {
     PROXY_TIMEOUT_MS: process.env.PROXY_TIMEOUT_MS,
     PROXY_BODY_LIMIT: process.env.PROXY_BODY_LIMIT,
     PROXY_ALLOWED_HOSTS: process.env.PROXY_ALLOWED_HOSTS,
+    BASE_PATH: process.env.BASE_PATH,
   });
 
   if (!result.success) {
@@ -57,6 +78,7 @@ export const config = {
   proxyToken: env.PROXY_TOKEN,
   timeoutMs: parseInt(env.PROXY_TIMEOUT_MS, 10),
   bodyLimitBytes: parseBodyLimit(env.PROXY_BODY_LIMIT),
+  basePath: parseBasePath(env.BASE_PATH),
   allowedHosts: env.PROXY_ALLOWED_HOSTS
     .split(",")
     .map((h) => h.trim().toLowerCase())

@@ -1,18 +1,25 @@
 {
-  "name": "hono-proxy-server",
+  "name": "relaygate",
   "version": "1.0.0",
-  "description": "Production-ready generic outbound HTTP proxy server",
+  "description": "Authenticated outbound HTTPS proxy server built with Hono and TypeScript",
   "type": "module",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "concurrently \"tsc -w\" \"node --watch --env-file=.env dist/app.js\"",
+    "dev": "concurrently \"tsc -w\" \"node --watch --env-file=.env dist/server.js\"",
     "build": "tsc",
-    "start": "node --env-file=.env dist/app.js",
+    "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "proxy",
+    "hono",
+    "typescript",
+    "outbound-proxy",
+    "ssrf"
+  ],
+  "author": "Sunjay Kumar",
+  "license": "MIT",
+  "repository": "https://github.com/sunjay-dev/relaygate",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@hono/node-server": "^1.14.4",

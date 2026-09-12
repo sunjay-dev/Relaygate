@@ -27,6 +27,6 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          tags: sunjay195/proxy-server:latest
+          tags: sunjay195/relaygate:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
