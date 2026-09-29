@@ -61,7 +61,7 @@ jobs:
           TMPU="$(cygpath -u "$RUNNER_TEMP")"
           curl -fsSL -o "$TMPU/llvm-mingw.zip" \
             "https://github.com/mstorsjo/llvm-mingw/releases/download/20260922/$PKG.zip"
-          tar -xf "$TMPU/llvm-mingw.zip" -C "$TMPU"
+          /c/Windows/System32/tar.exe -xf "$(cygpath -w "$TMPU/llvm-mingw.zip")" -C "$(cygpath -w "$TMPU")"
           echo "$(cygpath -w "$TMPU/$PKG/bin")" >> "$GITHUB_PATH"
           echo "CC=$(cygpath -w "$TMPU/$PKG/bin/clang.exe")" >> "$GITHUB_ENV"
           ZLIB="$(npm root -g)/scriptc/node_modules/@scriptc/runtime/vendor/zlib"
