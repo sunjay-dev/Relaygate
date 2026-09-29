@@ -1,0 +1,69 @@
+name: Build & Push scriptc Image
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build image for smoke test
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.scriptc
+          platforms: linux/arm64
+          load: true
+          tags: relaygate-scriptc:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test image
+        run: |
+          docker run -d --name smoke -p 4196:4000 -e PROXY_TOKEN=smoketest-token relaygate-scriptc:smoke
+          deadline=30
+          until curl -fsS http://127.0.0.1:4196/health > /dev/null 2>&1; do
+            deadline=$((deadline - 1))
+            if [ "$deadline" -le 0 ]; then
+              echo "server did not become healthy in time"
+              exit 1
+            fi
+            sleep 1
+          done
+          node scripts/smoke-check.mjs http://127.0.0.1:4196 smoketest-token
+
+      - name: Container logs
+        if: always()
+        run: docker logs smoke || true
+
+      - name: Remove smoke container
+        if: always()
+        run: docker rm -f smoke || true
+
+      - name: Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.scriptc
+          platforms: linux/arm64
+          push: true
+          tags: |
+            sunjay195/relaygate:scriptc
+            sunjay195/relaygate:scriptc-${{ github.sha }}
+          cache-from: type=gha

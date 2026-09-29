@@ -1,12 +1,10 @@
-FROM node:24-bookworm-slim AS toolchain
+ARG NODE_VERSION=24.17.0
+
+FROM node:${NODE_VERSION}-bookworm-slim AS toolchain
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-RUN npm install -g scriptc \
-    && corepack enable \
-    && scriptc --version
 
 # scriptc links with clang by default (SCRIPTC_LINKER can override the driver)
 # zlib/openssl headers are required when scriptc falls back to its C backend
@@ -15,4 +13,39 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends clang zlib1g-dev libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN corepack enable \
+    && npm install -g scriptc@0.1.7 \
+    && scriptc --version
+
+FROM toolchain AS build
+
 WORKDIR /app
+
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+
+RUN pnpm install --frozen-lockfile
+
+COPY src ./src
+COPY scripts ./scripts
+
+RUN node scripts/patch_pino_events.mjs node_modules/pino/lib/proto.js
+
+RUN npx tsc --noEmit \
+    && mkdir -p /out \
+    && scriptc build src/server.scriptc.ts --dynamic -o /out/relaygate
+
+FROM debian:bookworm-slim AS final
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --no-create-home --shell /usr/sbin/nologin relaygate
+
+COPY --from=build /out/relaygate /usr/local/bin/relaygate
+
+USER relaygate
+
+ENV PORT=4000
+EXPOSE 4000
+
+ENTRYPOINT ["/usr/local/bin/relaygate"]
