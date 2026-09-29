@@ -66,6 +66,18 @@ jobs:
           echo "CC=$(cygpath -w "$TMPU/$PKG/bin/clang.exe")" >> "$GITHUB_ENV"
           ZLIB="$(npm root -g)/scriptc/node_modules/@scriptc/runtime/vendor/zlib"
           echo "CPATH=$(cygpath -w "$ZLIB")" >> "$GITHUB_ENV"
+          # llvm-mingw ships no libz, but scriptc's win32 link line has -lz.
+          # Build scriptc's own vendored zlib with the mingw clang and drop it
+          # where the driver searches for libraries.
+          ZLIB_SRC="$(cygpath -u "$ZLIB")"
+          mkdir -p "$TMPU/zlib-build"
+          cp "$ZLIB_SRC"/*.c "$ZLIB_SRC"/*.h "$TMPU/zlib-build/"
+          cd "$TMPU/zlib-build"
+          for f in adler32 compress crc32 deflate infback inffast inflate inftrees trees uncompr zutil; do
+            "$TMPU/$PKG/bin/clang.exe" -O2 -I. -c "$f.c"
+          done
+          "$TMPU/$PKG/bin/llvm-ar.exe" rcs libz.a ./*.o
+          cp libz.a "$TMPU/$PKG/x86_64-w64-mingw32/lib/libz.a"
 
       - name: Patch pino for scriptc's island EventEmitter
         run: node scripts/patch_pino_events.mjs node_modules/pino/lib/proto.js
