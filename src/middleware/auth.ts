@@ -18,4 +18,5 @@ export async function authMiddleware(c: Context, next: Next): Promise<Response |
   }
 
   await next();
+  return undefined;
 }

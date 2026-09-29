@@ -1,0 +1,51 @@
+ARG NODE_VERSION=24.17.0
+
+# Toolchain: Node + zig. zig's bundled clang/sysroot (SCRIPTC_CC=zigcc) both
+# compiles scriptc's C-backend fallback and links a fully static musl binary,
+# so no system libc, compiler, or headers ship in the final image.
+FROM node:${NODE_VERSION}-alpine AS toolchain
+
+RUN apk add --no-cache zig
+
+RUN corepack enable \
+    && npm install -g scriptc@0.1.7 \
+    && scriptc --version
+
+FROM toolchain AS build
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml tsconfig.json ./
+
+RUN pnpm install --frozen-lockfile
+
+COPY src ./src
+COPY scripts ./scripts
+
+RUN node scripts/patch_pino_events.mjs node_modules/pino/lib/proto.js
+
+ARG TARGETARCH
+
+RUN case "${TARGETARCH}" in \
+      arm64) TRIPLE=aarch64-linux-musl ;; \
+      amd64) TRIPLE=x86_64-linux-musl ;; \
+      *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && npx tsc --noEmit \
+    && mkdir -p /out \
+    && SCRIPTC_CC=zigcc SCRIPTC_TARGET="${TRIPLE}" \
+       scriptc build src/server.scriptc.ts --dynamic --strip -o /out/relaygate
+
+# Final: only the static executable plus the CA trust store the proxy needs
+# to verify upstream TLS certificates (181KB, no OS, no libc, no shell).
+FROM scratch AS final
+
+COPY --from=toolchain /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /out/relaygate /relaygate
+
+USER 65532:65532
+
+ENV PORT=4000
+EXPOSE 4000
+
+ENTRYPOINT ["/relaygate"]
