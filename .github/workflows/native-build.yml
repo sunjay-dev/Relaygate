@@ -1,0 +1,111 @@
+name: native-build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build (${{ matrix.artifact }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: relaygate-windows-x64
+            out: dist/relaygate.exe
+          - os: ubuntu-latest
+            artifact: relaygate-linux-x64
+            out: dist/relaygate
+          - os: ubuntu-24.04-arm
+            artifact: relaygate-linux-arm64
+            out: dist/relaygate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang zlib1g-dev libssl-dev
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Install scriptc
+        run: npm install -g scriptc@0.1.7
+
+      - name: Patch pino for scriptc's island EventEmitter
+        run: node scripts/patch_pino_events.mjs node_modules/pino/lib/proto.js
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Coverage report
+        run: scriptc coverage src/server.ts --dynamic
+
+      - name: Build native binary
+        run: |
+          mkdir -p dist
+          scriptc build src/server.ts --dynamic -o "${{ matrix.out }}"
+
+      - name: Smoke test
+        run: bash scripts/smoke-native.sh "${{ matrix.out }}"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.out }}
+          if-no-files-found: error
+          retention-days: 14
+
+  announce:
+    name: comment download links
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Comment on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --body "$(cat <<'EOF'
+          ### Native binaries ready for testing
+
+          Build run with smoke tests: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Download from the run page's **Artifacts** section (requires a GitHub login):
+          - `relaygate-windows-x64` — `relaygate.exe` for Windows x64
+          - `relaygate-linux-x64`, `relaygate-linux-arm64` — Linux binaries
+
+          Quick test on Windows (PowerShell), after extracting the zip:
+
+          ```powershell
+          $env:PROXY_TOKEN = "test-token"
+          $env:PORT = 8787
+          .\relaygate.exe
+          ```
+
+          Then open http://127.0.0.1:8787/health — it should return `{"status":"ok"}`.
+          Point a client at it with `http://127.0.0.1:8787` and `Authorization: Bearer test-token`.
+
+          Artifacts are kept for 14 days.
+          EOF
+          )"
