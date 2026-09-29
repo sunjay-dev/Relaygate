@@ -1,10 +1,10 @@
 export class ProxyError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly message: string,
-  ) {
+  readonly statusCode: number;
+
+  constructor(statusCode: number, message: string) {
     super(message);
-    this.name = "ProxyError";
+    this.name = `ProxyError[${statusCode}]`;
+    this.statusCode = statusCode;
   }
 }
 
@@ -29,5 +29,11 @@ export function badGateway(message: string): ProxyError {
 }
 
 export function isProxyError(err: unknown): err is ProxyError {
-  return err instanceof ProxyError;
+  return err instanceof Error && err.name.startsWith("ProxyError[");
+}
+
+export function proxyStatusOf(err: Error): number | undefined {
+  const name = err.name;
+  if (name.length !== 15 || !name.startsWith("ProxyError[")) return undefined;
+  return parseInt(name.slice(11, 14), 10);
 }

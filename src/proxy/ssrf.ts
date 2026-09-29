@@ -1,4 +1,14 @@
-import { isIPv4 } from "net";
+import { lookup } from "node:dns";
+
+const IPV4_PATTERN = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+function isIPv4(ip: string): boolean {
+  if (!IPV4_PATTERN.test(ip)) return false;
+  for (const part of ip.split(".")) {
+    if (parseInt(part, 10) > 255) return false;
+  }
+  return true;
+}
 
 const PRIVATE_RANGES_V4: Array<{ start: number; end: number }> = [
   { start: ipToLong("127.0.0.0"), end: ipToLong("127.255.255.255") },
@@ -11,12 +21,12 @@ const PRIVATE_RANGES_V4: Array<{ start: number; end: number }> = [
 ];
 
 function ipToLong(ip: string): number {
-  const parts = ip.split(".").map(Number);
+  const parts = ip.split(".");
   return (
-    ((parts[0]! << 24) |
-      (parts[1]! << 16) |
-      (parts[2]! << 8) |
-      parts[3]!) >>>
+    ((parseInt(parts[0] ?? "0", 10) << 24) |
+      (parseInt(parts[1] ?? "0", 10) << 16) |
+      (parseInt(parts[2] ?? "0", 10) << 8) |
+      parseInt(parts[3] ?? "0", 10)) >>>
     0
   );
 }
@@ -58,12 +68,20 @@ export function assertSSRFSafe(hostname: string): void {
   }
 }
 
+function resolveAddress(hostname: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    lookup(hostname, { family: 4 }, (err, address) => {
+      if (err) reject(err);
+      else resolve(address);
+    });
+  });
+}
+
 export async function validateResolvedAddresses(
   hostname: string,
 ): Promise<void> {
-  const { lookup } = await import("dns/promises");
   try {
-    const { address } = await lookup(hostname, { family: 0 });
+    const address = await resolveAddress(hostname);
     if (isPrivateIP(address)) {
       throw new Error(
         `SSRF blocked: "${hostname}" resolved to private IP "${address}"`,

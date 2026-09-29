@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { config } from "../config/env.config.js";
-import { isProxyError, badRequest, gatewayTimeout, badGateway } from "../utils/errors.js";
+import { badRequest, gatewayTimeout, badGateway, proxyStatusOf } from "../utils/errors.js";
 import { logger, logProxyRequest } from "../utils/logging.js";
 import { parseProxyRequest, validateTargetUrl, validateTarget, shouldIncludeBody } from "./validation.js";
 import type { ProxyRequest } from "./validation.js";
@@ -58,7 +58,7 @@ export async function proxyHandler(c: Context): Promise<Response> {
   const upstreamHeaders = filterUpstreamHeaders(body.headers);
 
   let requestBody: string | undefined;
-  if (shouldIncludeBody(method) && body.body != null) {
+  if (shouldIncludeBody(method) && body.body !== undefined && body.body !== null) {
     if (typeof body.body === "object") {
       requestBody = JSON.stringify(body.body);
       if (!upstreamHeaders["content-type"]) {
@@ -126,8 +126,11 @@ export async function proxyHandler(c: Context): Promise<Response> {
 }
 
 export function handleProxyError(err: unknown, c: Context): Response {
-  if (isProxyError(err)) {
-    return c.json({ error: err.message }, err.statusCode as 400);
+  if (err instanceof Error) {
+    const status = proxyStatusOf(err);
+    if (status !== undefined) {
+      return c.json({ error: err.message }, status as 400);
+    }
   }
   logger.error({ err }, "unhandled_proxy_error");
   return c.json({ error: "Internal server error" }, 500);
