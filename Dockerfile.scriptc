@@ -8,7 +8,7 @@ FROM node:${NODE_VERSION}-alpine AS toolchain
 RUN apk add --no-cache zig
 
 RUN corepack enable \
-    && npm install -g scriptc@0.1.7 \
+    && npm install -g scriptc@0.4.8 \
     && scriptc --version
 
 FROM toolchain AS build
@@ -19,10 +19,10 @@ COPY package.json pnpm-lock.yaml tsconfig.json ./
 
 RUN pnpm install --frozen-lockfile
 
+RUN node -e "const fs = require('fs'); const file = 'node_modules/hono/dist/utils/html.js'; let c = fs.readFileSync(file, 'utf8'); c = c.replace(/buffer\\[0\\] \\+= /g, 'buffer[0] = (buffer[0] || \\\"\\\") + '); fs.writeFileSync(file, c);"
+
 COPY src ./src
 COPY scripts ./scripts
-
-RUN node scripts/patch_pino_events.mjs node_modules/pino/lib/proto.js
 
 ARG TARGETARCH
 
@@ -34,7 +34,7 @@ RUN case "${TARGETARCH}" in \
     && npx tsc --noEmit \
     && mkdir -p /out \
     && SCRIPTC_CC=zigcc SCRIPTC_TARGET="${TRIPLE}" \
-       scriptc build src/server.scriptc.ts --dynamic --strip -o /out/relaygate
+       scriptc build src/server.scriptc.ts --strip -o /out/relaygate
 
 # Final: only the static executable plus the CA trust store the proxy needs
 # to verify upstream TLS certificates (181KB, no OS, no libc, no shell).
