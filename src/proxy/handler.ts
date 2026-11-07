@@ -94,11 +94,11 @@ export async function proxyHandler(c: Context): Promise<Response> {
     });
 
     const responseHeaders: Record<string, string> = {};
-    for (const [key, value] of upstreamResponse.headers.entries()) {
+    upstreamResponse.headers.forEach((value, key) => {
       if (SAFE_RESPONSE_HEADERS.has(key.toLowerCase())) {
         responseHeaders[key] = value;
       }
-    }
+    });
 
     return new Response(upstreamResponse.body, {
       status: upstreamResponse.status,
