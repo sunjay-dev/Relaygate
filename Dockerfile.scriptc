@@ -19,10 +19,10 @@ COPY package.json pnpm-lock.yaml tsconfig.json ./
 
 RUN pnpm install --frozen-lockfile
 
-RUN node -e "const fs = require('fs'); const file = 'node_modules/hono/dist/utils/html.js'; let c = fs.readFileSync(file, 'utf8'); c = c.replace(/buffer\\[0\\] \\+= /g, 'buffer[0] = (buffer[0] || \\\"\\\") + '); fs.writeFileSync(file, c);"
+COPY scripts ./scripts
+RUN node scripts/patch_hono.mjs
 
 COPY src ./src
-COPY scripts ./scripts
 
 ARG TARGETARCH
 
