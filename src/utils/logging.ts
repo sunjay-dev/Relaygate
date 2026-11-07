@@ -1,3 +1,5 @@
+import { config } from "../config/env.config.js";
+
 export interface ProxyLogMeta {
   method: string;
   hostname: string;
@@ -18,7 +20,7 @@ const LOG_LEVELS: Record<string, number> = {
 };
 
 function shouldLog(level: string): boolean {
-  const envLevel = (process.env.LOG_LEVEL || "info").toLowerCase();
+  const envLevel = config.logLevel;
   const minLevel = LOG_LEVELS[envLevel] ?? 30;
   const currentLevel = LOG_LEVELS[level] ?? 30;
   return currentLevel >= minLevel;
