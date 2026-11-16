@@ -1,5 +1,8 @@
 import * as v from "valibot";
 
+const LOG_LEVELS = ["trace", "debug", "info", "warn", "error", "fatal", "silent"] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
 const envSchema = v.pipe(
   v.object({
     PORT: v.optional(v.pipe(v.string(), v.regex(/^\d+$/)), "4000"),
@@ -8,6 +11,7 @@ const envSchema = v.pipe(
     PROXY_BODY_LIMIT: v.optional(v.string(), "2mb"),
     PROXY_ALLOWED_HOSTS: v.optional(v.string(), ""),
     BASE_PATH: v.optional(v.string(), ""),
+    LOG_LEVEL: v.optional(v.string(), "info"),
   }),
   v.check((input) => input.PROXY_TOKEN !== "change-me", "PROXY_TOKEN must be changed from default"),
 );
@@ -50,6 +54,17 @@ function parseBasePath(raw: string): string {
   return basePath.replace(/\/+$/, "");
 }
 
+function parseLogLevel(raw: string): LogLevel {
+  const level = raw.trim().toLowerCase();
+  if ((LOG_LEVELS as readonly string[]).includes(level)) {
+    return level as LogLevel;
+  }
+  console.error(
+    `Invalid environment variables:\n  - LOG_LEVEL: must be one of ${LOG_LEVELS.join(", ")} (received "${raw}")`,
+  );
+  process.exit(1);
+}
+
 function validateEnv(): Env {
   const result = v.safeParse(envSchema, {
     PORT: process.env.PORT,
@@ -58,6 +73,7 @@ function validateEnv(): Env {
     PROXY_BODY_LIMIT: process.env.PROXY_BODY_LIMIT,
     PROXY_ALLOWED_HOSTS: process.env.PROXY_ALLOWED_HOSTS,
     BASE_PATH: process.env.BASE_PATH,
+    LOG_LEVEL: process.env.LOG_LEVEL,
   });
 
   if (!result.success) {
@@ -83,4 +99,5 @@ export const config = {
     .split(",")
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean),
+  logLevel: parseLogLevel(env.LOG_LEVEL),
 } as const;
