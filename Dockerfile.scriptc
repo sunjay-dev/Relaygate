@@ -8,7 +8,7 @@ FROM node:${NODE_VERSION}-alpine AS toolchain
 RUN apk add --no-cache zig
 
 RUN corepack enable \
-    && npm install -g scriptc@0.4.8 \
+    && npm install -g scriptc@0.4.14 \
     && scriptc --version
 
 FROM toolchain AS build
